@@ -2,9 +2,9 @@
  * Starry Sky
  * 
  * 作者: Xiaokun
- * 描述：使用Canvas绘制星空
+ * 描述：使用Canvas绘制星空(测试未完善....)
  * 地址：https://github.com/DoWake/StarrySky
- * 日期：2023/03/02
+ * 日期：2024/03/02
  */
 
 const StarrySky = function () {
