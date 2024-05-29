@@ -1,331 +1,232 @@
-* {
-  margin: 0;
-  padding: 0;
-  font-size: 14px;
-  box-sizing: content-box;
-}
+/**
+ * Starry Sky
+ * 
+ * 作者: DoWake
+ * 描述：使用Canvas绘制星空
+ * 地址：https://github.com/DoWake/StarrySky
+ * 日期：2023/03/02
+ */
 
-html,
-body {
-  width: 100%;
-  height: 100%;
-  user-select: none;
-}
+const StarrySky = function () {
+  //Canvas元素
+  let canvasElement;
+  //Canvas 2D对象
+  let canvasContext;
+  //Canvas 宽度
+  let canvasWidth;
+  //Canvas 高度
+  let canvasHeight;
+  //星星列表
+  let starList;
+  //星星颜色列表，rgb格式："255, 255, 255"
+  let starColorList;
+  //星星半径大小
+  let starRadius;
+  //焦距等级，与canvasWidth相乘，必须大于0
+  let focalDistanceLevel;
+  //星星数量等级，与canvasWidth相乘，必须大于0
+  let starCountLevel;
+  //星星速度等级，与焦距相乘，必须大于0
+  let starSpeedLevel;
+  //焦距
+  let focalDistance;
+  //星星数量
+  let starCount;
+  //执行动画
+  let rAF;
+  return {
+    //初始化
+    init: function (canvas_element) {
+      if (canvas_element && canvas_element.nodeName === "CANVAS") {
+        canvasElement = canvas_element;
+        canvasElement.width = canvasElement.clientWidth;
+        canvasElement.height = canvasElement.clientHeight;
+        canvasElement.style.backgroundColor = "black";
+        canvasContext = canvasElement.getContext("2d");
+        canvasWidth = canvasElement.clientWidth;
+        canvasHeight = canvasElement.clientHeight;
+        starColorList = ["255, 255, 255"];
+        starRadius = 1;
+        focalDistanceLevel = 0.4;
+        starCountLevel = 0.2;
+        starSpeedLevel = 0.0005;
+        focalDistance = canvasWidth * focalDistanceLevel;
+        starCount = Math.ceil(canvasWidth * starCountLevel);
+        starList = [];
+        for (let i = 0; i < starCount; i++) {
+          starList[i] = {
+            x: canvasWidth * (0.1 + 0.8 * Math.random()),
+            y: canvasHeight * (0.1 + 0.8 * Math.random()),
+            z: focalDistance * Math.random(),
+            color: starColorList[Math.ceil(Math.random() * 1000) % starColorList.length]
+          }
+        }
+        const self = this;
+        window.addEventListener("resize", self.throttle(function () {
+          canvasElement.width = canvasElement.clientWidth;
+          canvasElement.height = canvasElement.clientHeight;
+          canvasWidth = canvasElement.clientWidth;
+          canvasHeight = canvasElement.clientHeight;
+          focalDistance = canvasWidth * focalDistanceLevel;
 
-#bg {
-  width: 100%;
-  min-width: 250px;
-  height: 100%;
-  position: fixed;
-  z-index: 1;
-}
+          const starCount2 = Math.ceil(canvasWidth * starCountLevel);
+          if (starCount > starCount2) {
+            starList.splice(starCount2);
+          } else {
+            let num = starCount2 - starCount;
+            while (num--) {
+              starList.push({
+                x: canvasWidth * (0.1 + 0.8 * Math.random()),
+                y: canvasHeight * (0.1 + 0.8 * Math.random()),
+                z: focalDistance * Math.random(),
+                color: starColorList[Math.ceil(Math.random() * 1000) % starColorList.length]
+              });
+            }
+          }
+          starCount = Math.ceil(canvasWidth * starCountLevel);
+        }, 200));
+      } else {
+        console.error('初始化失败，必须传入Canvas元素');
+      }
+    },
+    //设置星空背景颜色
+    setSkyColor: function (sky_color = "black") {
+      canvasElement.style.backgroundColor = sky_color;
+    },
+    //设置星星半径大小
+    setStarRadius: function (star_radius = 1) {
+      starRadius = star_radius;
+    },
+    //设置焦距等级
+    setFocalDistanceLevel: function (focal_distance_level = 0.4) {
+      focalDistanceLevel = focal_distance_level;
+      focalDistance = canvasWidth * focalDistanceLevel
+    },
+    //设置星星数量等级
+    setStarCountLevel: function (star_count_level = 0.2) {
+      starCountLevel = star_count_level;
+      const starCount2 = Math.ceil(canvasWidth * starCountLevel);
+      if (starCount > starCount2) {
+        starList.splice(starCount2);
+      } else {
+        let num = starCount2 - starCount;
+        while (num--) {
+          starList.push({
+            x: canvasWidth * (0.1 + 0.8 * Math.random()),
+            y: canvasHeight * (0.1 + 0.8 * Math.random()),
+            z: focalDistance * Math.random(),
+            color: starColorList[Math.ceil(Math.random() * 1000) % starColorList.length]
+          });
+        }
+      }
+      starCount = Math.ceil(canvasWidth * starCountLevel);
+    },
+    //设置星星速度等级
+    setStarSpeedLevel: function (star_speed_level = 0.0005) {
+      starSpeedLevel = star_speed_level
+    },
+    /**
+     * 设置星星颜色
+     * @param {Array|String} color 星星颜色
+     * @param {Boolean} mode 是否立刻同步颜色
+     */
+    setStarColorList: function (color, mode = false) {
+      if (typeof color === 'object') {
+        starColorList = color;
+      } else if (typeof color === 'string') {
+        starColorList.push(color);
+      }
+      if (mode) {
+        for (let i = 0; i < starList.length; i++) {
+          starList[i]["color"] = starColorList[Math.ceil(Math.random() * 1000) % starColorList.length];
+        }
+      }
+    },
+// 渲染
+// 渲染
+render: function () {
+  const starSpeed = canvasWidth * focalDistanceLevel * starSpeedLevel;
+  // 清空画布
+  canvasContext.clearRect(0, 0, canvasWidth, canvasHeight);
+  // 计算位置
+  for (let i = 0; i < starList.length; i++) {
+    const star = starList[i];
+    const star_x = (star["x"] - canvasWidth / 2) * (focalDistance / star["z"]) + canvasWidth / 2;
+    const star_y = (star["y"] - canvasHeight / 2) * (focalDistance / star["z"]) + canvasHeight / 2;
+    star["z"] -= starSpeed;
 
-/* 添加自定义字体 */
-@font-face {
-  font-family: "阿里妈妈数黑体 Bold";
-  font-weight: 700;
-  src: url("//at.alicdn.com/wf/webfont/Ta8gCT6FYZyN/XY8JdWEdV9bs.woff2") format("woff2"),
-       url("//at.alicdn.com/wf/webfont/Ta8gCT6FYZyN/tfl7m0FCzUhQ.woff") format("woff");
-  font-display: swap;
-}
+    if (star["z"] > 0 && star["z"] <= focalDistance && star_x >= -20 && star_x <= canvasWidth + 20 && star_y >= -20 && star_y <= canvasHeight + 20) {
+      const star_size = starRadius * (focalDistance / star["z"] * 0.8);
+      const star_opacity = 1 - 0.8 * (star["z"] / focalDistance);
 
-/* 将自定义字体应用于昵称元素 */
-.nickname {
-  font-family: "阿里妈妈数黑体 Bold", sans-serif; /* 使用自定义字体，如果不可用则使用默认字体 */
-}
+      // 绘制五角星
+      canvasContext.fillStyle = "rgba(" + star["color"] + ", " + star_opacity + ")";
+      canvasContext.shadowOffsetX = 0;
+      canvasContext.shadowOffsetY = 0;
+      canvasContext.shadowColor = "rgb(" + star["color"] + ")";
+      canvasContext.shadowBlur = 10;
+      canvasContext.beginPath();
 
-
-.container {
-  width: 100%;
-  min-width: 250px;
-  min-height: 100%;
-  position: relative;
-  z-index: 10;
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.container .avatar {
-  width: 80px;
-  height: 80px;
-  margin-top: 30%;
-  border-radius: 50%;
-  box-shadow: 0 0 90px 2px #fff;
-  opacity: 0.8;
-}
-
-.container .nickname {
-  font-size: 18px;
-  margin-top: 20px;
-  letter-spacing: 2px;
-  animation: nickname-shadow 2s ease-in-out infinite alternate;
-}
-
-@keyframes nickname-shadow {
-  from {
-    text-shadow: 0 0 2px #f6f7fb;
+      // 计算五角星的五个角的坐标
+      for (let j = 0; j < 5; j++) {
+        const angle = ((j * 4 * Math.PI) / 5) - Math.PI / 10; // 五角星的角度偏移
+        const x = star_x + Math.cos(angle) * star_size;
+        const y = star_y + Math.sin(angle) * star_size;
+        if (j === 0) {
+          canvasContext.moveTo(x, y);
+        } else {
+          canvasContext.lineTo(x, y);
+        }
+      }
+      canvasContext.closePath();
+      canvasContext.fill();
+    } else {
+      const z = focalDistance * Math.random();
+      star["x"] = canvasWidth * (0.1 + 0.8 * Math.random());
+      star["y"] = canvasHeight * (0.1 + 0.8 * Math.random());
+      star["z"] = z;
+      star["color"] = starColorList[Math.floor(Math.random() * starColorList.length)];
+    }
   }
+  const self = this;
+  rAF = window.requestAnimationFrame(function () {
+    self.render();
+  });
+},
 
-  to {
-    text-shadow: 1px 1px 20px #f6f7fb;
+    //销毁
+    destroy: function () {
+      window.cancelAnimationFrame(rAF);
+      starList = [];
+      canvasContext.clearRect(0, 0, canvasWidth, canvasHeight);
+      canvasElement.width = 0;
+      canvasElement.height = 0;
+    },
+    //防抖
+    debounce: function (func, time = 200) {
+      let timeId;
+      return function () {
+        if (timeId) {
+          clearTimeout(timeId);
+        }
+        timeId = setTimeout(function () {
+          func();
+        }, time);
+      }
+    },
+    //节流
+    throttle: function (func, time = 200) {
+      let timeId = null;
+      let pre = 0;
+      return function () {
+        if (Date.now() - pre > time) {
+          clearTimeout(timeId);
+          pre = Date.now();
+          func();
+        } else {
+          timeId = setTimeout(func, time);
+        }
+      };
+    }
   }
-}
-
-
-.container .introduce {
-  font-size: 14px;
-  margin-top: 20px;
-  padding: 0 28px;
-  letter-spacing: 1px;
-  text-align: center;
-  line-height: 28px;
-}
-
-.container .quote {
-  font-size: 14px;
-  margin-top: 20px;
-  padding: 0 28px;
-  letter-spacing: 1px;
-  text-align: center;
-  font-family: cursive;
-  line-height: 28px;
-}
-
-.container .quote::after {
-  content: '';
-  display: inline-block;
-  width: 2px;
-  height: 18px;
-  border-radius: 2px;
-  background-color: #fff;
-  vertical-align: middle;
-  animation: blink 0.8s linear infinite;
-}
-
-@keyframes blink {
-  0% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0;
-  }
-
-  100% {
-    opacity: 1;
-  }
-}
-
-nav {
-  width: 80%;
-  min-height: 40px;
-  margin-top: 80px;
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-}
-
-nav .item {
-  width: 28px;
-  height: 28px;
-  margin: 8px 12px;
-  position: relative;
-  display: flex;
-  border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.9);
-  justify-content: center;
-  align-items: center;
-}
-
-nav .item a {
-  color: #fff;
-  text-decoration: none;
-  display: block;
-  width: 20px;
-  height: 20px;
-}
-
-nav .item a:focus,
-nav .item a:visited,
-nav .item a:active {
-  color: #fff;
-}
-
-nav .item a img {
-  width: 100%;
-  height: 100%;
-}
-
-nav .item .tooltip {
-  position: absolute;
-  width: 80px;
-  max-height: 80px;
-  background-color: rgb(255, 255, 255);
-  bottom: 40px;
-  padding: 4px;
-  border-radius: 4px;
-  z-index: 10;
-  color: #333;
-  letter-spacing: 2px;
-  text-align: center;
-  opacity: 0;
-  z-index: -1;
-  transform: translateY(-40px);
-  transition: all 0.1s ease-in-out;
-}
-
-nav .item .tooltip img {
-  width: 100%;
-  height: 100%;
-  position: relative;
-  z-index: 10;
-}
-
-nav .item .tooltip::after {
-  content: '';
-  display: block;
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-  background-color: rgb(255, 255, 255);
-  position: absolute;
-  bottom: -4px;
-  left: 40px;
-  transform: rotate(45deg);
-  z-index: 9;
-}
-
-
-nav .item a:focus+.tooltip,
-nav .item a:hover+.tooltip {
-  transform: translateY(0);
-  z-index: 10;
-  opacity: 1;
-}
-
-footer {
-  width: 80%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 20px 0;
-  margin-top: 40px;
-}
-
-footer .icp {
-  color: #f6f7fb;
-  text-decoration: none;
-  letter-spacing: 2px;
-  font-size: 10px;
-}
-
-
-footer .copyright {
-  color: #999;
-  font-size: 10px;
-  margin-top: 8px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-@media screen and (min-width:768px) {
-  .container .avatar {
-    width: 88px;
-    height: 88px;
-    margin-top: 20%;
-  }
-
-  .container .nickname {
-    font-size: 20px;
-    margin-top: 28px;
-  }
-
-  .container .introduce {
-    font-size: 16px;
-    margin-top: 28px;
-    padding: 0 40px;
-  }
-
-  .container .quote {
-    font-size: 16px;
-    margin-top: 28px;
-    padding: 0 40px;
-  }
-
-  .container .quote::after {
-    height: 20px;
-  }
-
-  nav {
-    margin-top: 90px;
-  }
-
-  nav .item {
-    width: 32px;
-    height: 32px;
-  }
-
-  nav .item .tooltip {
-    bottom: 48px;
-  }
-
-  nav .item a {
-    width: 22px;
-    height: 22px;
-  }
-}
-
-@media screen and (min-width:992px) {
-  .container .avatar {
-    width: 96px;
-    height: 96px;
-    margin-top: 10%;
-  }
-
-  .container .nickname {
-    font-size: 22px;
-    margin-top: 32px;
-  }
-
-  .container .introduce {
-    font-size: 18px;
-    margin-top: 36px;
-    padding: 0 80px;
-  }
-
-  .container .quote {
-    font-size: 18px;
-    margin-top: 36px;
-    padding: 0 80px;
-  }
-
-
-  .container .quote::after {
-    height: 22px;
-  }
-
-  nav {
-    margin-top: 100px;
-  }
-
-  nav .item {
-    width: 36px;
-    height: 36px;
-    margin: 12px;
-  }
-
-  nav .item .tooltip {
-    bottom: 56px;
-  }
-
-  nav .item a {
-    width: 24px;
-    height: 24px;
-  }
-}
+}();
